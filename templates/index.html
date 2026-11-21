@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CYBER FACEIT</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="/static/css/style.css?v=11000">
+
+    <style>
+        /* Новый стиль для рейтинга (только визуал, логика не тронута) */
+        .podium-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 10px;
+            margin-bottom: 24px;
+            padding-top: 30px;
+        }
+        .podium-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 100%;
+            max-width: 120px;
+        }
+        .podium-item.first { transform: scale(1.1); z-index: 2; border-color: rgba(0,255,136,0.3); background: linear-gradient(180deg, rgba(0,255,136,0.1) 0%, rgba(0,255,136,0.02) 100%); }
+        .podium-item.second { margin-bottom: 10px; }
+        .podium-item.third { margin-bottom: 20px; }
+        
+        .podium-crown { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); color: #ffd700; }
+        .podium-avatar { width: 60px; height: 60px; border-radius: 50%; background: #1f2229; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 8px; border: 2px solid rgba(255,255,255,0.1); }
+        .podium-place { font-size: 28px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+        .podium-name { font-size: 14px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+        .podium-elo { font-size: 18px; font-weight: 900; color: #00ff88; }
+        
+        .top-list { display: flex; flex-direction: column; gap: 8px; }
+        .top-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; }
+        .top-rank { font-size: 14px; font-weight: 900; color: #7a7f8a; width: 24px; }
+        .top-avatar { width: 40px; height: 40px; border-radius: 50%; background: #1f2229; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #fff; margin-right: 12px; }
+        .top-name { font-size: 14px; font-weight: 800; color: #fff; }
+        .top-elo { font-size: 18px; font-weight: 900; color: #fff; }
+    </style>
+    
+</head>
+<body>
+
+
+
+
+<div id="loader-screen" style="position:fixed;inset:0;background:#050608;display:flex;align-items:center;justify-content:center;z-index:99999;transition:opacity .3s;">
+  <div style="text-align:center;">
+    <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:1px;">CYBER <span style="color:#00ff88;">FACEIT</span></div>
+    <div style="margin-top:16px;width:40px;height:40px;border:3px solid rgba(0,255,136,0.2);border-top-color:#00ff88;border-radius:50%;margin:16px auto 0;animation:spin 0.8s linear infinite;"></div>
+  </div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+
+<div id="app" style="padding-top: 70px;">
+  <div id="top-header" style="position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(5,6,8,0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-between; align-items: center; padding: 0 16px; z-index: 999; border-bottom: 1px solid rgba(255,255,255,0.05);">
+    <div class="logo" style="font-size: 18px; font-weight: 800;">CYBER <span style="color: #00ff88;">FACEIT</span></div>
+  </div>
+
+  <div class="page" id="page-auth">
+    <h1 class="logo" style="margin-top:40px;">CYBER <span>FACEIT</span></h1>
+    <p class="page-p" style="text-align:center;">Придумайте ник и введите игровой ID</p>
+    <input type="text" id="inp-nick" class="form-control" placeholder="Ник (от 3 до 18 символов)" maxlength="18" style="margin-bottom:10px;">
+    <input type="text" id="inp-cfid" class="form-control" placeholder="Гейм Айди (CounterFlame)" maxlength="20" style="margin-bottom:10px;">
+    <div id="auth-err" style="color:#ff4444; font-size:12px; margin-bottom:10px; display:none;"></div>
+    <button class="btn-primary" style="width:100%; justify-content:center;" onclick="registerUser()">Продолжить</button>
+  </div>
+
+  <div class="page active" id="page-home">
+    <div class="hero-banner" style="margin-top: 10px;">
+        <div class="tag">ОБНОВЛЕНИЕ 4.2</div>
+        <h1>ИГРАЙ <span>2×2 · 3×3 · 5×5</span><br>ПОДНИМАЙСЯ В ТОП</h1>
+        <p>Лобби трёх форматов, подтверждение матча, честное вето карт и обязательный скрин после игры.</p>
+        <div class="hero-btns">
+            <button class="btn-primary" onclick="show('lobbies')">В лобби</button>
+            <button class="btn-secondary" onclick="show('top')">Рейтинг</button>
+        </div>
+    </div>
+    <div id="home-ads"></div>
+    <div class="stats-row">
+        <div class="stat-box"><div class="stat-num" id="stat-online">-</div><div class="stat-text">Игроков онлайн</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-lobbies">-</div><div class="stat-text">Активных лобби</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-matches">-</div><div class="stat-text">Матчей сегодня</div></div>
+    </div>
+    <div id="home-news"></div>
+  </div>
+
+  <div class="page" id="page-lobbies">
+    <h1 class="page-h1">Лобби</h1>
+    <p class="page-p">Выбери формат: 2×2, 3×3 или 5×5. Нажми «Войти», дождись заполнения и подтверди матч.</p>
+    <div class="lobbies-grid" id="lobbies-list"></div>
+  </div>
+
+  <div class="page" id="page-room">
+    <div class="room-topbar">
+      <button class="btn-back" onclick="goBackToLobbies()">← К лобби</button>
+      <div id="room-status-badge" class="status-badge">Набор</div>
+      <button class="btn-exit" onclick="leaveLobby()">Выйти</button>
+    </div>
+    <h1 id="room-name" class="room-title">Alpha</h1>
+    <p id="room-mode" class="room-subtitle">Competitive · EU · 5x5</p>
+    <div class="score-board"><div id="room-score" class="score-text">1 / 4</div></div>
+    <div class="teams-grid">
+      <div class="team-column"><div class="team-header">КОМАНДА А</div><div id="team-a" class="team-list"></div></div>
+      <div class="team-column"><div class="team-header">КОМАНДА В</div><div id="team-b" class="team-list"></div></div>
+    </div>
+    <div id="waiting-phase" class="glass-panel" style="padding:20px; text-align:center;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div class="panel-title" style="margin-bottom:0;">НАБОР ИГРОКОВ</div>
+        <div style="background:rgba(0,255,136,0.1); color:#00ff88; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;" id="wait-count">1 / 4</div>
+      </div>
+      <div style="padding:30px 0;">
+        <div style="color:#7a7f8a; font-size:13px;">Ждём заполнения лобби</div>
+      </div>
+    </div>
+    <div id="confirm-phase" class="glass-panel" style="display:none;">
+      <div class="panel-header"><div class="panel-title">ПОДТВЕРЖДЕНИЕ</div><div id="confirm-timer" class="timer-badge">59 с</div></div>
+      <div class="confirm-stats">Подтвердили (<span id="confirm-count">0</span>/<span id="confirm-total">0</span>):</div>
+      <div id="confirm-ready-list" class="pill-list"></div>
+      <div class="confirm-stats" style="margin-top:12px;">Ожидаем:</div>
+      <div id="confirm-wait-list" class="pill-list"></div>
+      <button class="btn-primary full-width" style="margin-top:16px;" onclick="pressConfirm()">✓ Подтвердить матч</button>
+    </div>
+    <div id="match-phase" class="glass-panel" style="display:none;">
+      <div class="panel-title">КОД МАТЧА</div>
+      <div id="match-code" class="match-code-display">—</div>
+      <div id="code-edit" style="display:none; gap:8px; margin-bottom:12px;">
+        <input type="text" id="code-inp" class="form-control" placeholder="Введите код">
+        <button class="btn-primary" onclick="publishCode()">Опубликовать</button>
+      </div>
+      <button id="btn-start-match" class="btn-primary full-width" onclick="startMatch()">Начать матч</button>
+      <label class="btn-secondary full-width" style="margin-top:12px; cursor:pointer; text-align:center; display:block; padding:12px; border-radius:12px; background:rgba(255,255,255,0.05);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:5px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Загрузить скриншот
+        <input type="file" accept="image/*" style="display:none;" onchange="uploadScreenshot(event)">
+      </label>
+    </div>
+    <div class="glass-panel">
+      <div class="panel-title">ЧАТ ЛОББИ</div>
+      <div id="room-chat" class="chat-box" style="display:flex; align-items:center; justify-content:center; color:#7a7f8a;">Напиши первым</div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-inp" class="form-control" placeholder="Сообщение..." maxlength="200">
+        <button class="btn-primary" onclick="sendChat()" style="padding:0 20px;">▶</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-profile">
+    <h1 class="page-h1">Профиль</h1>
+    <div id="profile-content"></div>
+  </div>
+
+  <div class="page" id="page-top">
+    <h1 class="page-h1">Рейтинг</h1>
+    <p class="page-p">Топ-3 на подиуме.</p>
+    <div id="top-podium" class="podium-container"></div>
+    <div id="top-list" class="top-list"></div>
+  </div>
+
+  
+  <div class="page" id="page-veto" style="padding-top:20px;">
+    
+    <div id="veto-status-page" style="text-align:center; font-weight:800; font-size:16px; margin-bottom:20px; color:#00b8ff;">Ожидание...</div>
+    
+    <div id="veto-grid-page" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;"></div>
+    
+    <div id="veto-final-page" style="text-align:center; font-weight:800; color:#ffd700; font-size:18px; margin-top:20px;"></div>
+  </div>
+
+  <div class="page" id="page-admin">
+    <h1 class="page-h1">Админ панель</h1>
+    <p class="page-p">Доступно только администраторам.</p>
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="matches" onclick="switchAdminTab('matches', this)">Матчи</button>
+      <button class="admin-tab" data-tab="lobbies" onclick="switchAdminTab('lobbies', this)">Лобби</button>
+      <button class="admin-tab" data-tab="ads" onclick="switchAdminTab('ads', this)">Реклама</button>
+      <button class="admin-tab" data-tab="news" onclick="switchAdminTab('news', this)">Новости</button>
+      <button class="admin-tab" data-tab="players" onclick="switchAdminTab('players', this)">Игроки</button>
+      <button class="admin-tab" data-tab="stats" onclick="switchAdminTab('stats', this)">Статистика</button>
+    </div>
+    <div id="admin-content"></div>
+  </div>
+
+  <div id="modal-settings" class="modal-settings">
+    <div class="modal-box">
+      <div class="modal-title">Настройки профиля</div>
+      <div class="form-group"><label>Никнейм</label><input type="text" id="set-nick" class="form-control" maxlength="18"></div>
+      <div class="form-group"><label>Устройство</label><select id="set-device" class="form-control"><option value="PC">PC</option><option value="Phone">Phone</option></select></div>
+      <div class="form-group"><label>О себе</label><textarea id="set-bio" class="form-control" rows="3" maxlength="160"></textarea></div>
+      <button class="btn-save" onclick="saveProfileSettings()">Сохранить</button>
+      <button style="width:100%; margin-top:8px; background:transparent; color:#7a7f8a; border:none; padding:12px;" onclick="document.getElementById('modal-settings').classList.remove('show')">Отмена</button>
+    </div>
+  </div>
+
+  <div class="tabbar" id="tabbar">
+    <div class="tab active" data-page="home"></div>
+    <div class="tab" data-page="lobbies"></div>
+    <div class="tab" data-page="profile"></div>
+    <div class="tab" data-page="top"></div>
+    <div class="tab" data-page="admin"></div>
+  </div>
+</div>
+
+
+
+<div id="toast-container"></div>
+<script src="/static/js/app.js?v=18900"></script>
+
+<script>
+    // Аварийное скрытие лоадера через 2 секунды
+    setTimeout(() => {
+        const l = document.getElementById('loader-screen');
+        if (l) l.style.display = 'none';
+    }, 2000);
+</script>
+
+</body>
+</html>
